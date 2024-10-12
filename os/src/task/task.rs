@@ -9,6 +9,8 @@ pub struct TaskControlBlock {
     pub task_status: TaskStatus,
     /// The task context
     pub task_cx: TaskContext,
+    /// The first_start_running time
+    pub task_meta: TaskMeta,
 }
 
 /// The status of a task
@@ -22,4 +24,11 @@ pub enum TaskStatus {
     Running,
     /// exited
     Exited,
+}
+
+/// The metadata of a task
+#[derive(Copy, Clone)]
+pub struct TaskMeta {
+    /// The timestamp of the first runnig
+    pub time: usize,
 }
