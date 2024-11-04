@@ -1,5 +1,7 @@
 //! Types related to task management
 
+use crate::config::MAX_SYSCALL_NUM;
+
 use super::TaskContext;
 
 /// The task control block (TCB) of a task.
@@ -31,4 +33,15 @@ pub enum TaskStatus {
 pub struct TaskMeta {
     /// The timestamp of the first runnig
     pub time: usize,
+    /// syscall called times
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+}
+
+impl TaskMeta {
+    pub fn new() -> TaskMeta {
+        TaskMeta {
+            time: 0,
+            syscall_times: [0; MAX_SYSCALL_NUM],
+        }
+    }
 }

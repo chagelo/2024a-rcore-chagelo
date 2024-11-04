@@ -21,13 +21,27 @@ const SYSCALL_GET_TIME: usize = 169;
 /// taskinfo syscall
 const SYSCALL_TASK_INFO: usize = 410;
 
+/// total numbers of syscall
+const CUR_SYSCALL_NUM: usize = 5;
+
+/// SYSCALL NUMBER
+const SYSCALL_IDS: [usize; CUR_SYSCALL_NUM] = [
+    SYSCALL_WRITE, SYSCALL_EXIT, SYSCALL_YIELD, SYSCALL_GET_TIME, SYSCALL_TASK_INFO,
+];
+
 mod fs;
 mod process;
 
 use fs::*;
-use process::*;
+pub use process::*;
+
+use crate::task::incr_sys_call_times;
+
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
+    if SYSCALL_IDS.iter().any(|x| *x == syscall_id) {
+        incr_sys_call_times(syscall_id);
+    }
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         SYSCALL_EXIT => sys_exit(args[0] as i32),

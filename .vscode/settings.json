@@ -12,6 +12,7 @@
         "riscv64gc-unknown-none-elf"
     ],
     "git.ignoreLimitWarning": true,
+    "rust-analyzer.checkOnSave": true,
     // "rust-analyzer.cargo.features": [
     //     "board_qemu"
     // ]

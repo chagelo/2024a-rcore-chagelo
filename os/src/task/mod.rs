@@ -18,6 +18,7 @@ use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
 use crate::timer::get_time_ms;
+use crate::syscall::TaskInfo;
 use lazy_static::*;
 use switch::__switch;
 use task::TaskMeta;
@@ -56,7 +57,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
-            task_meta: TaskMeta{time: 0},
+            task_meta: TaskMeta::new(),
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -82,8 +83,10 @@ impl TaskManager {
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
+        if task0.task_status == TaskStatus::UnInit {
+            task0.task_meta.time = get_time_ms();
+        }
         task0.task_status = TaskStatus::Running;
-        task0.task_meta.time = get_time_ms();
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -151,6 +154,27 @@ impl TaskManager {
         }
     }
 
+    fn incr_sys_call_times(&self, syscall_id: usize) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        if inner.tasks[current].task_status == TaskStatus::Running {
+            inner.tasks[current].task_meta.syscall_times[syscall_id] += 1;
+        }
+    }
+
+    fn get_task_info(&self) -> Option<TaskInfo> {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        if inner.tasks[current].task_status == TaskStatus::Running {
+            return Some(TaskInfo {
+                status: TaskStatus::Running,
+                syscall_times: inner.tasks[current].task_meta.syscall_times.clone(),
+                time: get_time_ms() - inner.tasks[current].task_meta.time,
+            });
+        }
+        None
+    }
+
 }
 
 /// Run the first task in task list.
@@ -189,4 +213,14 @@ pub fn exit_current_and_run_next() {
 /// Get the running time 
 pub fn get_running_time() -> Option<usize>{
     TASK_MANAGER.get_running_time()
+}
+
+/// Increment the number of system call by one
+pub fn incr_sys_call_times(syscall_id: usize) {
+    TASK_MANAGER.incr_sys_call_times(syscall_id)
+}
+
+/// Get task information 
+pub fn get_task_info() -> Option<TaskInfo> {
+    TASK_MANAGER.get_task_info()
 }
